@@ -502,41 +502,12 @@ function generateA4SheetPreviewHTML() {
 // =========================================================================
 // TELEGRAM BOT ALERT ENGINE
 // =========================================================================
-async function sendTelegramAlert(orderId) {
+async function sendTelegramAlert(orderId, isSilent = false) {
     const order = state.orders.find(o => o.id === orderId) || getActiveOrder();
     if (!order) return;
 
     const token = state.settings.telegramBotToken || "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M";
-    let chatId = state.settings.telegramChatId;
-
-    // If chat ID is missing, try to auto-detect from getUpdates
-    if (!chatId) {
-        try {
-            const updateRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
-            const updateData = await updateRes.json();
-            if (updateData.ok && updateData.result && updateData.result.length > 0) {
-                const latestMsg = updateData.result[updateData.result.length - 1];
-                if (latestMsg.message && latestMsg.message.chat) {
-                    chatId = latestMsg.message.chat.id;
-                    state.settings.telegramChatId = chatId;
-                    saveSettings();
-                }
-            }
-        } catch (err) {
-            console.warn("Could not auto-fetch chat ID", err);
-        }
-    }
-
-    if (!chatId) {
-        const inputId = prompt(
-            "សូមបញ្ចូល Telegram Chat ID ឬ Group ID របស់អ្នកដើម្បីទទួលសារ Alert (ឬឆាតពាក្យ /start ទៅកាន់ Bot @chunrasbot ជាមុនសិន) :",
-            ""
-        );
-        if (!inputId) return;
-        chatId = inputId.trim();
-        state.settings.telegramChatId = chatId;
-        saveSettings();
-    }
+    const chatId = state.settings.telegramChatId || "-5139897271";
 
     const pageName = order.pageName || state.settings.pageName || "INO Tech Studio";
     const dateFormatted = `${order.date || '18/09/2026'} ${order.time || '18:37'}`;
@@ -547,7 +518,9 @@ async function sendTelegramAlert(orderId) {
     const paymentMethodText = order.paymentMethod || (isPaid ? "Paid (ABA Bank (ACC Store) ($))" : "COD (ប្រមូលប្រាក់ពេលដឹកជញ្ជូន)");
 
     const messageText = 
-`📦 <b>ACC Bot</b> [admin]
+`🔔 <b>មានការទម្លាក់ Order ថ្មី! (New Order Drop)</b> 📦
+
+📦 <b>ACC Bot</b> [admin]
 ✅ សូមបងពិនិត្យលេខទូរស័ព្ទ និងទីតាំងម្ដងទៀតបង 🙏
 📑 <b>Page:</b> ${order.pageName || pageName}
 👤 <b>អតិថិជន:</b> ${order.customerName}
@@ -584,12 +557,20 @@ ${order.products || '1. ទំនិញបញ្ជាទិញ'}
 
         const data = await res.json();
         if (data.ok) {
-            alert(`✅ បានផ្ញើសារ Alert នៃការបញ្ជាទិញ #${order.id} ទៅកាន់ Telegram រួចរាល់!`);
+            if (!isSilent) {
+                alert(`✅ បានផ្ញើសារ Alert នៃការបញ្ជាទិញ #${order.id} ទៅកាន់ Telegram Group [table] រួចរាល់!`);
+            }
         } else {
-            alert(`⚠️ មិនអាចផ្ញើសារបានទេ: ${data.description}\n(សូមប្រាកដថាអ្នកបានចុច /start លើ Bot @chunrasbot ឬ Add Bot ចូល Group រួចរាល់)`);
+            console.error("Telegram API Error:", data);
+            if (!isSilent) {
+                alert(`⚠️ មិនអាចផ្ញើសារបានទេ: ${data.description}`);
+            }
         }
     } catch (e) {
-        alert("⚠️ បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Telegram API: " + e.message);
+        console.error("Telegram Alert network error:", e);
+        if (!isSilent) {
+            alert("⚠️ បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Telegram API: " + e.message);
+        }
     }
 }
 
@@ -772,9 +753,9 @@ function addNewOrder(orderData) {
     renderTable();
     selectOrder(orderData.id);
 
-    // Auto-alert if enabled
-    if (state.settings.autoTelegramAlert && state.settings.telegramChatId) {
-        sendTelegramAlert(orderData.id);
+    // Auto-alert into Telegram Group
+    if (state.settings.autoTelegramAlert !== false) {
+        sendTelegramAlert(orderData.id, false);
     }
 }
 

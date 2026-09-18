@@ -210,11 +210,38 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ទីតាំង / ខេត្ត-ក្រុង (Location) *</label>
-                            <input type="text" class="form-input" id="form-location" required placeholder="ឧ. សៀមរាប ឬ ភ្នំពេញ">
+                            <input type="text" class="form-input" id="form-location" list="cambodia-locations-list" required placeholder="ចុចរើស ឬវាយ (ឧ. ភ្នំពេញ, សៀមរាប...)">
+                            <datalist id="cambodia-locations-list">
+                                <option value="ភ្នំពេញ">
+                                <option value="សៀមរាប">
+                                <option value="បាត់ដំបង">
+                                <option value="កណ្តាល">
+                                <option value="កំពត">
+                                <option value="កំពង់ចាម">
+                                <option value="កំពង់ស្ពឺ">
+                                <option value="កំពង់ធំ">
+                                <option value="កំពង់ឆ្នាំង">
+                                <option value="ព្រះសីហនុ">
+                                <option value="បន្ទាយមានជ័យ">
+                                <option value="តាកែវ">
+                                <option value="ព្រៃវែង">
+                                <option value="ស្វាយរៀង">
+                                <option value="ពោធិ៍សាត់">
+                                <option value="កោះកុង">
+                                <option value="ក្រចេះ">
+                                <option value="ស្ទឹងត្រែង">
+                                <option value="រតនគិរី">
+                                <option value="មណ្ឌលគិរី">
+                                <option value="ព្រះវិហារ">
+                                <option value="ឧត្តរមានជ័យ">
+                                <option value="ប៉ៃលិន">
+                                <option value="កែប">
+                                <option value="ត្បូងឃ្មុំ">
+                            </datalist>
                         </div>
                         <div class="form-group full-width">
                             <label class="form-label">អាសយដ្ឋានលម្អិត (Address) *</label>
-                            <textarea class="form-textarea" id="form-address" required placeholder="ឧ. សៀមរាប ចុងកៅស៊ូ"></textarea>
+                            <textarea class="form-textarea" id="form-address" required placeholder="ឧ. សៀមរាប ចុងកៅស៊ូ ឬ ផ្ទះលេខ... ផ្លូវ..."></textarea>
                         </div>
                         <div class="form-group full-width">
                             <label class="form-label">ទំនិញបញ្ជាទិញ (Products & Quantity)</label>
@@ -244,8 +271,18 @@
                             <input type="text" class="form-input" id="form-payment-method" placeholder="ឧ. Paid (ABA Bank (ACC Store) ($))">
                         </div>
                         <div class="form-group full-width">
-                            <label class="form-label">ក្រុមហ៊ុនដឹកជញ្ជូន (Shipper)</label>
-                            <input type="text" class="form-input" id="form-shipper" value="វីរៈប៊ុនថាំ (VET)" placeholder="ឧ. វីរៈប៊ុនថាំ (VET), J&T Express, Flash Express...">
+                            <label class="form-label">ក្រុមហ៊ុនដឹកជញ្ជូន (Shipper) *</label>
+                            <input type="text" class="form-input" id="form-shipper" list="shippers-list" value="វីរៈប៊ុនថាំ (VET)" required placeholder="ចុចរើស ឬវាយបញ្ចូល...">
+                            <datalist id="shippers-list">
+                                <option value="វីរៈប៊ុនថាំ (VET)">
+                                <option value="J&T Express">
+                                <option value="Flash Express">
+                                <option value="កាពីតូល (Capitol)">
+                                <option value="ZTO Express">
+                                <option value="Ceva Logistics">
+                                <option value="Kerry Express">
+                                <option value="ដឹកផ្ទាល់ (Direct Delivery / Grab)">
+                            </datalist>
                         </div>
                     </div>
                 </div>

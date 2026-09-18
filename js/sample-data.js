@@ -69,52 +69,6 @@ const INITIAL_ORDERS = [
         sellerStaff: "Sokha",
         notes: "ផ្ញើរថយន្តក្រុង ព្រឹកស្អែក",
         qrData: "ACC-D44E78-0976543210-91USD"
-    },
-    {
-        id: "B12F90",
-        customerName: "Meng Sopheak",
-        phone: "093221100(Smart)",
-        location: "កំពត",
-        address: "ជិតរង្វង់មូលធុរេន ក្រុងកំពត",
-        products: "Edifier R1700BTs Bluetooth Speaker x1 = $85.00",
-        itemsList: [
-            { name: "Edifier R1700BTs Bluetooth Speaker", qty: 1, price: 85.00 }
-        ],
-        itemPrice: 85.00,
-        deliveryFee: 2.00,
-        totalAmount: 87.00,
-        paymentStatus: "PAID",
-        paymentMethod: "Paid (KHQR - Wing)",
-        shipper: "វីរៈប៊ុនថាំ (VET)",
-        date: "17/09/2026",
-        time: "16:45",
-        pageName: "INO Tech Studio",
-        sellerStaff: "Chunras",
-        notes: "",
-        qrData: "ACC-B12F90-093221100-87USD"
-    },
-    {
-        id: "E77A33",
-        customerName: "Rithy San",
-        phone: "069554433(Smart)",
-        location: "កណ្តាល",
-        address: "ក្រុងតាខ្មៅ ជិតផ្សារតាខ្មៅចាស់",
-        products: "Fantech Helios II Pro Wireless Mouse x1 = $38.00",
-        itemsList: [
-            { name: "Fantech Helios II Pro Wireless Mouse", qty: 1, price: 38.00 }
-        ],
-        itemPrice: 38.00,
-        deliveryFee: 1.50,
-        totalAmount: 39.50,
-        paymentStatus: "COD",
-        paymentMethod: "COD (ប្រមូលប្រាក់ពេលដឹកជញ្ជូន)",
-        shipper: "Flash Express",
-        date: "18/09/2026",
-        time: "09:30",
-        pageName: "INO Tech Studio",
-        sellerStaff: "Chunras",
-        notes: "Call 069554433",
-        qrData: "ACC-E77A33-069554433-39.5USD"
     }
 ];
 
@@ -129,6 +83,10 @@ const DEFAULT_SETTINGS = {
     defaultShipper: "វីរៈប៊ុនថាំ (VET)",
     showWatermark: true,
     watermarkText: "PAID",
-    qrType: "smart", // smart, phone, id, payment
-    theme: "dark"
+    qrType: "smart",
+    theme: "dark",
+    telegramBotToken: "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M",
+    telegramBotUsername: "chunrasbot",
+    telegramChatId: "",
+    autoTelegramAlert: true
 };

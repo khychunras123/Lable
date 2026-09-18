@@ -326,6 +326,20 @@ ID: #F38BA5"></textarea>
                             <label class="form-label">អត្ថបទខាងក្រោមបាត Label (Footer System Tag)</label>
                             <input type="text" class="form-input" id="setting-system-footer" value="PRO DELIVERY SYSTEM" required>
                         </div>
+
+                        <!-- Telegram Bot Integration -->
+                        <div class="form-group full-width" style="border-top: 1px solid var(--border); padding-top: 0.85rem; margin-top: 0.5rem;">
+                            <label class="form-label" style="color: #38bdf8; font-weight: 700;">🤖 Telegram Bot Token (សម្រាប់ផ្ញើ Alert)</label>
+                            <input type="text" class="form-input" id="setting-telegram-token" value="8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M" required style="font-family: var(--font-mono); font-size: 0.85rem;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Telegram Chat ID ឬ Group ID (ទទួលសារ)</label>
+                            <input type="text" class="form-input" id="setting-telegram-chatid" placeholder="ឧ. 123456789 ឬ -100xxxxxxx" style="font-family: var(--font-mono);">
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+                            <input type="checkbox" id="setting-telegram-auto" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <label for="setting-telegram-auto" class="form-label" style="cursor: pointer; margin: 0;">ផ្ញើ Alert ស្វ័យប្រវត្តពេលបង្កើត Order ថ្មី</label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

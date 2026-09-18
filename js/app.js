@@ -1,5 +1,6 @@
 /**
  * Delivery Label & Order Management Application Logic
+ * Integrated with Telegram Bot Notifications
  */
 
 // Application State
@@ -99,15 +100,12 @@ function renderStats() {
 // Filter Orders
 function getFilteredOrders() {
     return state.orders.filter(order => {
-        // Status filter
         if (state.statusFilter !== "ALL" && (order.paymentStatus || "").toUpperCase() !== state.statusFilter) {
             return false;
         }
-        // Shipper filter
         if (state.shipperFilter !== "ALL" && !order.shipper.includes(state.shipperFilter)) {
             return false;
         }
-        // Search query
         if (state.searchQuery) {
             const q = state.searchQuery.toLowerCase();
             const matchName = (order.customerName || "").toLowerCase().includes(q);
@@ -177,6 +175,9 @@ function renderTable() {
                     <span class="shipper-chip">${escapeHtml(order.shipper || '-')}</span>
                 </td>
                 <td class="row-actions" onclick="event.stopPropagation()">
+                    <button class="row-btn" title="ផ្ញើទៅ Telegram (Send Alert)" onclick="sendTelegramAlert('${order.id}')">
+                        📢
+                    </button>
                     <button class="row-btn" title="បោះពុម្ព Label" onclick="printSingleOrder('${order.id}')">
                         🖨️
                     </button>
@@ -196,12 +197,10 @@ function renderTable() {
 
     tbody.innerHTML = html;
 
-    // Check if all are selected
     if (selectAllCheckbox) {
         selectAllCheckbox.checked = filtered.length > 0 && filtered.every(o => state.selectedOrderIds.has(o.id));
     }
 
-    // Attach row click listeners
     tbody.querySelectorAll("tr").forEach(tr => {
         tr.addEventListener("click", () => {
             const id = tr.getAttribute("data-id");
@@ -209,9 +208,8 @@ function renderTable() {
         });
     });
 
-    // Attach checkbox listeners
     tbody.querySelectorAll(".row-checkbox").forEach(cb => {
-        cb.addEventListener("change", (e) => {
+        cb.addEventListener("change", () => {
             const id = cb.getAttribute("data-id");
             if (cb.checked) {
                 state.selectedOrderIds.add(id);
@@ -236,7 +234,6 @@ function updateBulkCounter() {
 function selectOrder(id) {
     state.activeOrderId = id;
     
-    // Highlight table row
     document.querySelectorAll("#orders-tbody tr").forEach(tr => {
         if (tr.getAttribute("data-id") === id) {
             tr.classList.add("active-row");
@@ -248,7 +245,7 @@ function selectOrder(id) {
     renderCurrentPreview();
 }
 
-// Render Current Preview Based on Active Tab
+// Render Current Preview
 function renderCurrentPreview() {
     const order = getActiveOrder();
     const container = document.getElementById("preview-render-area");
@@ -261,7 +258,6 @@ function renderCurrentPreview() {
 
     if (state.currentTab === "label") {
         container.innerHTML = generateThermalLabelHTML(order);
-        // Generate QR code for label
         setTimeout(() => {
             const qrEl = document.getElementById(`qr-preview-${order.id}`);
             if (qrEl && window.QRCode) {
@@ -280,7 +276,6 @@ function renderCurrentPreview() {
         container.innerHTML = generateTelegramReceiptHTML(order);
     } else if (state.currentTab === "a4") {
         container.innerHTML = generateA4SheetPreviewHTML();
-        // Generate QR codes for all visible labels on A4 preview
         setTimeout(() => {
             state.orders.slice(0, 6).forEach(ord => {
                 const qrEl = document.getElementById(`qr-a4-${ord.id}`);
@@ -299,9 +294,7 @@ function renderCurrentPreview() {
     }
 }
 
-// =========================================================================
-// HTML GENERATOR: 80x60mm DELIVERY THERMAL LABEL (Replica of Image 1)
-// =========================================================================
+// 80x60mm THERMAL LABEL HTML
 function generateThermalLabelHTML(order, isPrint = false) {
     const storeName = state.settings.storeName || "ACC Store";
     const pageName = order.pageName || state.settings.pageName || "INO Tech Studio";
@@ -314,15 +307,12 @@ function generateThermalLabelHTML(order, isPrint = false) {
         <div class="thermal-label-container">
             <div class="thermal-label">
                 <div class="label-inner-frame">
-                    <!-- Top Black Header -->
                     <div class="label-top-header">
                         <div class="label-store-name">${escapeHtml(storeName)}</div>
                         <div class="label-order-id-tag">#${escapeHtml(order.id)}</div>
                     </div>
 
-                    <!-- Main Split Body -->
                     <div class="label-body">
-                        <!-- Left Section (62%) -->
                         <div class="label-left-section">
                             <div class="label-meta-row">
                                 <span>RECIPIENT DELIVERY</span>
@@ -336,17 +326,14 @@ function generateThermalLabelHTML(order, isPrint = false) {
                                 <div class="label-cust-address">${escapeHtml(order.address || '')}</div>
                             </div>
 
-                            <!-- Diagonal Watermark -->
                             <div class="label-watermark">${escapeHtml(watermarkText)}</div>
 
-                            <!-- Left Footer -->
                             <div class="label-left-footer">
                                 <span>${escapeHtml(pageName)}</span>
                                 <span>${escapeHtml(sellerStaff)}</span>
                             </div>
                         </div>
 
-                        <!-- Right Section (38%) -->
                         <div class="label-right-section">
                             <div class="label-qr-wrapper">
                                 <div class="label-qr-code" id="${isPrint ? 'qr-print-' + order.id : 'qr-preview-' + order.id}"></div>
@@ -371,7 +358,6 @@ function generateThermalLabelHTML(order, isPrint = false) {
                         </div>
                     </div>
 
-                    <!-- Bottom Right Label Tag -->
                     <div class="label-bottom-footer">
                         ${escapeHtml(state.settings.systemFooter || 'PRO DELIVERY SYSTEM')}
                     </div>
@@ -388,9 +374,7 @@ function generateThermalLabelHTML(order, isPrint = false) {
     `;
 }
 
-// =========================================================================
-// HTML GENERATOR: TELEGRAM BOT RECEIPT CARD (Replica of Image 2)
-// =========================================================================
+// TELEGRAM RECEIPT HTML
 function generateTelegramReceiptHTML(order) {
     const pageName = order.pageName || state.settings.pageName || "INO Tech Studio";
     const dateFormatted = `${order.date || '18/09/2026'} ${order.time || '18:37'}`;
@@ -459,6 +443,9 @@ function generateTelegramReceiptHTML(order) {
             </div>
 
             <div class="tg-action-buttons">
+                <button class="tg-btn" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color:#fff;" onclick="sendTelegramAlert('${order.id}')">
+                    📢 ផ្ញើ Alert ទៅ Telegram Bot
+                </button>
                 <button class="tg-btn print-btn" onclick="printSingleOrder('${order.id}')">
                     🖨️ ព្រីន Label
                 </button>
@@ -470,7 +457,7 @@ function generateTelegramReceiptHTML(order) {
     `;
 }
 
-// Generate A4 Sheet Preview (Grid of labels)
+// A4 Sheet Preview
 function generateA4SheetPreviewHTML() {
     const list = state.orders.slice(0, 6);
     let html = `<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background:#fff; padding:15px; border-radius:8px; width:100%; max-width:500px;">`;
@@ -513,8 +500,100 @@ function generateA4SheetPreviewHTML() {
 }
 
 // =========================================================================
-// PRINT ENGINE
+// TELEGRAM BOT ALERT ENGINE
 // =========================================================================
+async function sendTelegramAlert(orderId) {
+    const order = state.orders.find(o => o.id === orderId) || getActiveOrder();
+    if (!order) return;
+
+    const token = state.settings.telegramBotToken || "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M";
+    let chatId = state.settings.telegramChatId;
+
+    // If chat ID is missing, try to auto-detect from getUpdates
+    if (!chatId) {
+        try {
+            const updateRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+            const updateData = await updateRes.json();
+            if (updateData.ok && updateData.result && updateData.result.length > 0) {
+                const latestMsg = updateData.result[updateData.result.length - 1];
+                if (latestMsg.message && latestMsg.message.chat) {
+                    chatId = latestMsg.message.chat.id;
+                    state.settings.telegramChatId = chatId;
+                    saveSettings();
+                }
+            }
+        } catch (err) {
+            console.warn("Could not auto-fetch chat ID", err);
+        }
+    }
+
+    if (!chatId) {
+        const inputId = prompt(
+            "សូមបញ្ចូល Telegram Chat ID ឬ Group ID របស់អ្នកដើម្បីទទួលសារ Alert (ឬឆាតពាក្យ /start ទៅកាន់ Bot @chunrasbot ជាមុនសិន) :",
+            ""
+        );
+        if (!inputId) return;
+        chatId = inputId.trim();
+        state.settings.telegramChatId = chatId;
+        saveSettings();
+    }
+
+    const pageName = order.pageName || state.settings.pageName || "INO Tech Studio";
+    const dateFormatted = `${order.date || '18/09/2026'} ${order.time || '18:37'}`;
+    const itemPrice = parseFloat(order.itemPrice || order.totalAmount || 0).toFixed(2);
+    const deliveryFee = parseFloat(order.deliveryFee || 0).toFixed(2);
+    const totalAmount = parseFloat(order.totalAmount || 0).toFixed(2);
+    const isPaid = (order.paymentStatus || "").toUpperCase() === "PAID";
+    const paymentMethodText = order.paymentMethod || (isPaid ? "Paid (ABA Bank (ACC Store) ($))" : "COD (ប្រមូលប្រាក់ពេលដឹកជញ្ជូន)");
+
+    const messageText = 
+`📦 <b>ACC Bot</b> [admin]
+✅ សូមបងពិនិត្យលេខទូរស័ព្ទ និងទីតាំងម្ដងទៀតបង 🙏
+📑 <b>Page:</b> ${order.pageName || pageName}
+👤 <b>អតិថិជន:</b> ${order.customerName}
+📞 <b>លេខទូរស័ព្ទ:</b> ${order.phone}
+📍 <b>ទីតាំង:</b> ${order.location || ''}
+🏠 <b>អាសយដ្ឋាន:</b> ${order.address || ''}
+
+------------- <b>ផលិតផល</b> -------------
+${order.products || '1. ទំនិញបញ្ជាទិញ'}
+
+💰 <b>សរុប:</b>
+- តម្លៃទំនិញ: $${itemPrice}
+- សេវាដឹក: $${deliveryFee}
+- <b>សរុបចុងក្រោយ: $${totalAmount}</b>
+- 💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${paymentMethodText}
+
+🚚 <b>វិធីសាស្ត្រដឹកជញ្ជូន:</b> ${order.shipper || 'វីរៈប៊ុនថាំ (VET)'}
+📅 ${dateFormatted}
+
+អរគុណបង 🙏🥰 | ID: <b>#${order.id}</b>`;
+
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: messageText,
+                parse_mode: "HTML"
+            })
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+            alert(`✅ បានផ្ញើសារ Alert នៃការបញ្ជាទិញ #${order.id} ទៅកាន់ Telegram រួចរាល់!`);
+        } else {
+            alert(`⚠️ មិនអាចផ្ញើសារបានទេ: ${data.description}\n(សូមប្រាកដថាអ្នកបានចុច /start លើ Bot @chunrasbot ឬ Add Bot ចូល Group រួចរាល់)`);
+        }
+    } catch (e) {
+        alert("⚠️ បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Telegram API: " + e.message);
+    }
+}
+
+// PRINT ENGINE
 function printSingleOrder(id) {
     const order = state.orders.find(o => o.id === id) || getActiveOrder();
     if (!order) return;
@@ -528,7 +607,6 @@ function printSingleOrder(id) {
         </div>
     `;
 
-    // Render high quality QR code for print
     const qrEl = document.getElementById(`qr-print-${order.id}`);
     if (qrEl && window.QRCode) {
         new QRCode(qrEl, {
@@ -570,7 +648,6 @@ function printBatchSelected() {
 
     printContainer.innerHTML = html;
 
-    // Render QR codes for each label
     setTimeout(() => {
         targetOrders.forEach(order => {
             const qrEl = document.getElementById(`qr-print-${order.id}`);
@@ -591,9 +668,7 @@ function printBatchSelected() {
     }, 50);
 }
 
-// =========================================================================
-// SMART TELEGRAM TEXT PARSER (Parses Image 2 format automatically)
-// =========================================================================
+// SMART TELEGRAM TEXT PARSER
 function parseTelegramText(rawText) {
     if (!rawText || typeof rawText !== "string") return null;
 
@@ -618,35 +693,27 @@ function parseTelegramText(rawText) {
         notes: ""
     };
 
-    // Regex extraction
     rawText.split("\n").forEach(line => {
         const clean = line.trim();
 
-        // Page
         if (clean.includes("Page:")) {
             result.pageName = clean.replace(/.*Page:\s*/i, "").trim();
         }
-        // Customer Name
         if (clean.includes("អតិថិជន:") || clean.includes("Customer:") || clean.includes("ឈ្មោះ:")) {
             result.customerName = clean.replace(/.*(អតិថិជន|Customer|ឈ្មោះ):\s*/i, "").trim();
         }
-        // Phone
         if (clean.includes("លេខទូរស័ព្ទ:") || clean.includes("Phone:") || clean.includes("Tel:")) {
             result.phone = clean.replace(/.*(លេខទូរស័ព្ទ|Phone|Tel):\s*/i, "").trim();
         }
-        // Location / Province
         if (clean.includes("ទីតាំង:") || clean.includes("Location:")) {
             result.location = clean.replace(/.*(ទីតាំង|Location):\s*/i, "").trim();
         }
-        // Address
         if (clean.includes("អាសយដ្ឋាន:") || clean.includes("Address:") || clean.includes("ទីកន្លែង:")) {
             result.address = clean.replace(/.*(អាសយដ្ឋាន|Address|ទីកន្លែង):\s*/i, "").trim();
         }
-        // Shipper / Delivery
         if (clean.includes("វិធីសាស្ត្រដឹកជញ្ជូន:") || clean.includes("Shipper:") || clean.includes("ដឹកតាម:")) {
             result.shipper = clean.replace(/.*(វិធីសាស្ត្រដឹកជញ្ជូន|Shipper|ដឹកតាម):\s*/i, "").trim();
         }
-        // Payment status
         if (clean.includes("ស្ថានភាពបង់ប្រាក់:") || clean.includes("Payment:")) {
             const payStr = clean.replace(/.*(ស្ថានភាពបង់ប្រាក់|Payment):\s*/i, "").trim();
             result.paymentMethod = payStr;
@@ -656,28 +723,24 @@ function parseTelegramText(rawText) {
                 result.paymentStatus = "COD";
             }
         }
-        // Order ID (e.g. ID: F38BA5 or #F38BA5)
         if (clean.includes("ID:") || clean.includes("#")) {
             const idMatch = clean.match(/ID:\s*#?([A-Za-z0-9]+)/i) || clean.match(/#([A-Za-z0-9]{4,8})/);
             if (idMatch && idMatch[1]) {
                 result.id = idMatch[1].toUpperCase();
             }
         }
-        // Total Amount
         if (clean.includes("សរុបចុងក្រោយ:") || clean.includes("Total:")) {
             const priceMatch = clean.match(/\$\s*(\d+(\.\d+)?)/) || clean.match(/(\d+(\.\d+)?)\s*\$/);
             if (priceMatch) {
                 result.totalAmount = parseFloat(priceMatch[1]);
             }
         }
-        // Item price
         if (clean.includes("តម្លៃទំនិញ:") || clean.includes("Price:")) {
             const itemMatch = clean.match(/\$\s*(\d+(\.\d+)?)/) || clean.match(/(\d+(\.\d+)?)\s*\$/);
             if (itemMatch) {
                 result.itemPrice = parseFloat(itemMatch[1]);
             }
         }
-        // Delivery Fee
         if (clean.includes("សេវាដឹក:") || clean.includes("Delivery fee:")) {
             const feeMatch = clean.match(/\$\s*(\d+(\.\d+)?)/) || clean.match(/(\d+(\.\d+)?)\s*\$/);
             if (feeMatch) {
@@ -686,12 +749,10 @@ function parseTelegramText(rawText) {
         }
     });
 
-    // Extract product section between "ផលិតផល" and "សរុប"
     const prodMatch = rawText.match(/ផលិតផល\s*-*\s*\n([\s\S]*?)(?=💰|សរុប|$)/i);
     if (prodMatch && prodMatch[1]) {
         result.products = prodMatch[1].trim();
     } else {
-        // Fallback: try finding line starting with 1.
         const numLine = lines.find(l => /^\d+\./.test(l));
         if (numLine) result.products = numLine;
     }
@@ -703,15 +764,18 @@ function parseTelegramText(rawText) {
     return result;
 }
 
-// =========================================================================
 // CRUD OPERATIONS
-// =========================================================================
 function addNewOrder(orderData) {
     state.orders.unshift(orderData);
     saveOrders();
     renderStats();
     renderTable();
     selectOrder(orderData.id);
+
+    // Auto-alert if enabled
+    if (state.settings.autoTelegramAlert && state.settings.telegramChatId) {
+        sendTelegramAlert(orderData.id);
+    }
 }
 
 function updateOrder(id, updatedFields) {
@@ -776,18 +840,14 @@ function duplicateOrder(id) {
     addNewOrder(copy);
 }
 
-// Contact customer action (Telegram / Call)
 function contactCustomer(phone) {
     if (!phone) return;
     const cleanNum = phone.replace(/[^0-9]/g, "");
     window.open(`https://t.me/+855${cleanNum.replace(/^0/, '')}`, '_blank');
 }
 
-// =========================================================================
 // MODALS & EVENT HANDLERS
-// =========================================================================
 function setupEventListeners() {
-    // Search input
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
         searchInput.addEventListener("input", (e) => {
@@ -796,7 +856,6 @@ function setupEventListeners() {
         });
     }
 
-    // Status filter
     const statusFilter = document.getElementById("status-filter-select");
     if (statusFilter) {
         statusFilter.addEventListener("change", (e) => {
@@ -805,7 +864,6 @@ function setupEventListeners() {
         });
     }
 
-    // Shipper filter
     const shipperFilter = document.getElementById("shipper-filter-select");
     if (shipperFilter) {
         shipperFilter.addEventListener("change", (e) => {
@@ -814,7 +872,6 @@ function setupEventListeners() {
         });
     }
 
-    // Select all checkbox
     const selectAllCheckbox = document.getElementById("select-all-checkbox");
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener("change", (e) => {
@@ -828,7 +885,6 @@ function setupEventListeners() {
         });
     }
 
-    // Tab buttons
     document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -838,7 +894,6 @@ function setupEventListeners() {
         });
     });
 
-    // Theme toggle
     const themeBtn = document.getElementById("theme-toggle-btn");
     if (themeBtn) {
         themeBtn.addEventListener("click", () => {
@@ -851,7 +906,6 @@ function setupEventListeners() {
         });
     }
 
-    // Add Order Modal Form Submit
     const orderForm = document.getElementById("order-form");
     if (orderForm) {
         orderForm.addEventListener("submit", (e) => {
@@ -860,7 +914,6 @@ function setupEventListeners() {
         });
     }
 
-    // Telegram Parser Submit
     const parseBtn = document.getElementById("btn-apply-parser");
     if (parseBtn) {
         parseBtn.addEventListener("click", () => {
@@ -880,7 +933,6 @@ function setupEventListeners() {
         });
     }
 
-    // Settings Form Submit
     const settingsForm = document.getElementById("settings-form");
     if (settingsForm) {
         settingsForm.addEventListener("submit", (e) => {
@@ -889,14 +941,17 @@ function setupEventListeners() {
             state.settings.pageName = document.getElementById("setting-page-name").value;
             state.settings.sellerStaff = document.getElementById("setting-seller-staff").value;
             state.settings.systemFooter = document.getElementById("setting-system-footer").value;
+            state.settings.telegramBotToken = document.getElementById("setting-telegram-token").value.trim();
+            state.settings.telegramChatId = document.getElementById("setting-telegram-chatid").value.trim();
+            state.settings.autoTelegramAlert = document.getElementById("setting-telegram-auto").checked;
             saveSettings();
             closeModal("settings-modal");
             renderCurrentPreview();
+            alert("💾 បានរក្សាទុកការកំណត់ និង Telegram Bot រួចរាល់!");
         });
     }
 }
 
-// Modal controls
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -911,7 +966,6 @@ function closeModal(modalId) {
     }
 }
 
-// Open Add / Edit Modal
 function openNewOrderModal() {
     document.getElementById("modal-order-title").textContent = "➕ បន្ថែម Order ថ្មី";
     document.getElementById("form-order-id").value = generateOrderId();
@@ -1002,6 +1056,9 @@ function openSettingsModal() {
     document.getElementById("setting-page-name").value = state.settings.pageName || "INO Tech Studio";
     document.getElementById("setting-seller-staff").value = state.settings.sellerStaff || "Chunras";
     document.getElementById("setting-system-footer").value = state.settings.systemFooter || "PRO DELIVERY SYSTEM";
+    document.getElementById("setting-telegram-token").value = state.settings.telegramBotToken || "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M";
+    document.getElementById("setting-telegram-chatid").value = state.settings.telegramChatId || "";
+    document.getElementById("setting-telegram-auto").checked = state.settings.autoTelegramAlert !== false;
     openModal("settings-modal");
 }
 
@@ -1009,7 +1066,6 @@ function openTelegramParserModal() {
     openModal("telegram-parser-modal");
 }
 
-// Export Orders to CSV
 function exportOrdersCSV() {
     if (state.orders.length === 0) {
         alert("មិនមានទិន្នន័យសម្រាប់ Export ទេ!");
@@ -1041,7 +1097,6 @@ function exportOrdersCSV() {
     document.body.removeChild(link);
 }
 
-// Utility: Escape HTML
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     return String(text)

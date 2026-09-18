@@ -22,8 +22,8 @@
             </div>
 
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openNewOrderModal()">
-                    <span>➕</span> បន្ថែម Order ថ្មី
+                <button class="btn btn-primary" onclick="openNewOrderModal()" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+                    <span>🚀</span> Submit Order ថ្មី
                 </button>
                 <button class="btn btn-secondary" onclick="openTelegramParserModal()" title="ទាញយកទិន្នន័យពី Telegram Bot Text">
                     <span>📋</span> នាំចូលពី Telegram
@@ -299,8 +299,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('order-edit-modal')">បោះបង់</button>
-                    <button type="submit" class="btn btn-primary">💾 រក្សាទុក Order</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('order-edit-modal')">បោះបង់ (Cancel)</button>
+                    <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 0.92rem; font-weight: 700; padding: 0.6rem 1.4rem;">
+                        <span>🚀</span> Submit Order (រក្សាទុក & Alert)
+                    </button>
                 </div>
             </form>
         </div>
@@ -358,9 +360,9 @@ ID: #F38BA5"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('telegram-parser-modal')">បោះបង់</button>
-                <button type="button" class="btn btn-primary" id="btn-apply-parser">
-                    ✨ បំប្លែង និងបន្ថែមចូល Table
+                <button type="button" class="btn btn-secondary" onclick="closeModal('telegram-parser-modal')">បោះបង់ (Cancel)</button>
+                <button type="button" class="btn btn-primary" id="btn-apply-parser" style="background: linear-gradient(135deg, #10b981, #059669); font-weight: 700;">
+                    <span>🚀</span> Submit & បន្ថែមចូល Table
                 </button>
             </div>
         </div>

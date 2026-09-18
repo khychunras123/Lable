@@ -30,6 +30,13 @@
                 <button class="btn btn-primary" onclick="openNewOrderModal()" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
                     <span>🚀</span> Submit Order ថ្មី
                 </button>
+                <button class="btn btn-secondary" id="btn-sync-telegram" onclick="manualTelegramSync()" title="ទាញយកទិន្នន័យផ្ទាល់ពី Telegram Group / Bot" style="border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
+                    <span id="sync-icon">🔄</span> <span id="sync-text">Sync Telegram</span>
+                </button>
+                <div class="live-pulse-badge" title="ប្រព័ន្ធកំពុងស្វែងរក Order ថ្មីពី Telegram ដោយស្វ័យប្រវត្តិ">
+                    <span class="pulse-dot"></span>
+                    <span>Live TG Sync</span>
+                </div>
                 <button class="btn btn-secondary" onclick="openTelegramParserModal()" title="ទាញយកទិន្នន័យពី Telegram Bot Text">
                     <span>📋</span> នាំចូលពី Telegram
                 </button>
@@ -339,12 +346,20 @@
                 <button class="btn-icon" onclick="closeModal('telegram-parser-modal')">✕</button>
             </div>
             <div class="modal-body">
-                <div class="parser-hint">
-                    💡 <strong>របៀបប្រើ:</strong> ចម្លង (Copy) អត្ថបទសារការបញ្ជាទិញពី Telegram Bot ឬ Chat ហើយបិទភ្ជាប់ (Paste) ចូលប្រអប់ខាងក្រោម។ ប្រព័ន្ធនឹងទាញយកឈ្មោះ លេខទូរស័ព្ទ ទីតាំង ទំនិញ និងតម្លៃចូលក្នុង Table ដោយស្វ័យប្រវត្តិ!
+                <div class="parser-hint" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        💡 <strong>ជម្រើសទី 1:</strong> ចុចប៊ូតុង <strong>[ ⚡ ទាញយកពី Telegram ផ្ទាល់ ]</strong> ដើម្បីប្រព័ន្ធទាញយកសារ Order ចុងក្រោយពី Telegram Group [table] ដោយស្វ័យប្រវត្តិ!
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="manualTelegramSync(); closeModal('telegram-parser-modal');" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700; font-size: 0.82rem;">
+                        ⚡ ទាញយកពី Telegram ផ្ទាល់
+                    </button>
                 </div>
-                <div class="form-group">
+                <div class="parser-hint" style="margin-top: 0.5rem;">
+                    📋 <strong>ជម្រើសទី 2:</strong> ចម្លង (Copy) អត្ថបទសារការបញ្ជាទិញពី Telegram ហើយបិទភ្ជាប់ (Paste) ចូលប្រអប់ខាងក្រោម៖
+                </div>
+                <div class="form-group" style="margin-top: 0.5rem;">
                     <label class="form-label">បិទភ្ជាប់អត្ថបទ Telegram នៅទីនេះ (Paste text below):</label>
-                    <textarea class="form-textarea" id="telegram-raw-input" style="min-height: 220px; font-family: var(--font-mono); font-size: 0.85rem;" placeholder="ឧទាហរណ៍៖
+                    <textarea class="form-textarea" id="telegram-raw-input" style="min-height: 200px; font-family: var(--font-mono); font-size: 0.85rem;" placeholder="ឧទាហរណ៍៖
 Page: INO Tech Studio
 អតិថិជន: Seng Leang
 លេខទូរស័ព្ទ: 085467475(Cellcard)
@@ -401,7 +416,7 @@ ID: #F38BA5"></textarea>
 
                         <!-- Telegram Bot Integration -->
                         <div class="form-group full-width" style="border-top: 1px solid var(--border); padding-top: 0.85rem; margin-top: 0.5rem;">
-                            <label class="form-label" style="color: #38bdf8; font-weight: 700;">🤖 Telegram Bot Token (សម្រាប់ផ្ញើ Alert)</label>
+                            <label class="form-label" style="color: #38bdf8; font-weight: 700;">🤖 Telegram Bot Token (សម្រាប់ផ្ញើ Alert & Sync)</label>
                             <input type="text" class="form-input" id="setting-telegram-token" value="8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M" required style="font-family: var(--font-mono); font-size: 0.85rem;">
                         </div>
                         <div class="form-group">
@@ -422,6 +437,9 @@ ID: #F38BA5"></textarea>
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
     <!-- =========================================================================
          MOBILE FLOATING ACTION BUTTON & BOTTOM NAVIGATION
          ========================================================================= -->
@@ -438,6 +456,10 @@ ID: #F38BA5"></textarea>
         <button class="mobile-nav-item" onclick="switchMobileView('preview')">
             <span class="icon">🏷️</span>
             <span>មើល Label</span>
+        </button>
+        <button class="mobile-nav-item" onclick="manualTelegramSync()">
+            <span class="icon">🔄</span>
+            <span>Sync TG</span>
         </button>
         <button class="mobile-nav-item" onclick="openTelegramParserModal()">
             <span class="icon">📥</span>

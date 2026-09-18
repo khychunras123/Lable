@@ -1,0 +1,76 @@
+[
+  {
+    "id": "E84E91",
+    "customerName": "Tit sopha",
+    "phone": "0964499871",
+    "location": "សៀមរាប",
+    "address": "ទីតាំងសៀមរាប ផ្សារហ៊ុយឡេង",
+    "products": "Oneplus ACE2 black",
+    "itemPrice": 0,
+    "deliveryFee": 0,
+    "totalAmount": 42,
+    "paymentStatus": "PAID",
+    "paymentMethod": "AC",
+    "shipper": "វីរៈប៊ុនថាំ (VET)",
+    "date": "18/09/2026",
+    "time": "03:15 PM",
+    "pageName": "Flexi Gear",
+    "sellerStaff": "Chunras",
+    "notes": "",
+    "qrData": "ACC-E84E91-0964499871-42USD"
+  },
+  {
+    "id": "F38BA5",
+    "customerName": "Seng Leang",
+    "phone": "085467475(Cellcard)",
+    "location": "សៀមរាប",
+    "address": "សៀមរាប ចុងកៅស៊ូ",
+    "products": "ATTACK SHARK L50 PRO | Black x1 = $52.00",
+    "itemsList": [
+      {
+        "name": "ATTACK SHARK L50 PRO (Black)",
+        "qty": 1,
+        "price": 52
+      }
+    ],
+    "itemPrice": 52,
+    "deliveryFee": 0,
+    "totalAmount": 52,
+    "paymentStatus": "PAID",
+    "paymentMethod": "Paid (ABA Bank (ACC Store) ($))",
+    "shipper": "វីរៈប៊ុនថាំ (VET)",
+    "date": "18/09/2026",
+    "time": "18:37",
+    "pageName": "INO Tech Studio",
+    "sellerStaff": "Chunras",
+    "notes": "ប្រញាប់ដឹកមុនម៉ោង 5 ល្ងាច",
+    "qrData": "ACC-F38BA5-085467475-52USD"
+  },
+  {
+    "id": "A89C12",
+    "customerName": "Keo Pich",
+    "phone": "012889977(Smart)",
+    "location": "ភ្នំពេញ",
+    "address": "ផ្ទះលេខ 23 ផ្លូវ 271 សង្កាត់ទឹកល្អក់3 ខណ្ឌទួលគោក",
+    "products": "Logitech G Pro X Superlight 2 | White x1 = $145.00",
+    "itemsList": [
+      {
+        "name": "Logitech G Pro X Superlight 2 (White)",
+        "qty": 1,
+        "price": 145
+      }
+    ],
+    "itemPrice": 145,
+    "deliveryFee": 1.5,
+    "totalAmount": 146.5,
+    "paymentStatus": "COD",
+    "paymentMethod": "COD (ប្រមូលប្រាក់ពេលដឹកជញ្ជូន)",
+    "shipper": "J&T Express",
+    "date": "18/09/2026",
+    "time": "14:20",
+    "pageName": "INO Tech Studio",
+    "sellerStaff": "Chunras",
+    "notes": "ទូរស័ព្ទមុនពេលទៅដល់",
+    "qrData": "ACC-A89C12-012889977-146.5USD"
+  }
+]

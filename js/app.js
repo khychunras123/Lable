@@ -20,6 +20,7 @@ const state = {
 document.addEventListener("DOMContentLoaded", () => {
     loadState();
     setupEventListeners();
+    startTelegramLivePolling();
 });
 
 // Load state from server or localStorage or default sample
@@ -711,8 +712,48 @@ function printBatchSelected() {
     }, 50);
 }
 
-// SMART TELEGRAM TEXT PARSER
-function parseTelegramText(rawText) {
+// =========================================================================
+// TOAST NOTIFICATION SYSTEM
+// =========================================================================
+function showToast(message, type = "success", duration = 4000) {
+    let container = document.getElementById("toast-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toast-container";
+        container.className = "toast-container";
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    
+    let icon = "✅";
+    if (type === "info") icon = "ℹ️";
+    if (type === "warning") icon = "⚠️";
+    if (type === "error") icon = "❌";
+
+    toast.innerHTML = `
+        <span style="font-size: 1.2rem;">${icon}</span>
+        <div style="flex: 1;">${message}</div>
+        <button style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 0 4px;" onclick="this.parentElement.remove()">✕</button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(20px)";
+            setTimeout(() => toast.remove(), 400);
+        }
+    }, duration);
+}
+
+// =========================================================================
+// SMART TELEGRAM TEXT PARSER & LIVE SYNC ENGINE
+// =========================================================================
+function parseTelegramText(rawText, replyText = "") {
     if (!rawText || typeof rawText !== "string") return null;
 
     const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
@@ -720,45 +761,48 @@ function parseTelegramText(rawText) {
         id: generateOrderId(),
         customerName: "",
         phone: "",
-        location: "",
+        location: "ភ្នំពេញ",
         address: "",
         products: "",
         itemPrice: 0,
         deliveryFee: 0,
         totalAmount: 0,
         paymentStatus: "PAID",
-        paymentMethod: "",
+        paymentMethod: "Paid (ABA Bank (ACC Store) ($))",
         shipper: "វីរៈប៊ុនថាំ (VET)",
         date: new Date().toLocaleDateString('en-GB'),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        pageName: "INO Tech Studio",
-        sellerStaff: "Chunras",
+        pageName: state.settings.pageName || "INO Tech Studio",
+        sellerStaff: state.settings.sellerStaff || "Chunras",
         notes: ""
     };
 
     rawText.split("\n").forEach(line => {
         const clean = line.trim();
 
-        if (clean.includes("Page:")) {
-            result.pageName = clean.replace(/.*Page:\s*/i, "").trim();
+        if (clean.includes("Page:") || clean.includes("ផេក:")) {
+            result.pageName = clean.replace(/.*(Page|ផេក):\s*/i, "").trim();
         }
-        if (clean.includes("អតិថិជន:") || clean.includes("Customer:") || clean.includes("ឈ្មោះ:")) {
-            result.customerName = clean.replace(/.*(អតិថិជន|Customer|ឈ្មោះ):\s*/i, "").trim();
+        if (clean.includes("អតិថិជន:") || clean.includes("Customer:") || clean.includes("ឈ្មោះ:") || clean.includes("Name:")) {
+            result.customerName = clean.replace(/.*(អតិថិជន|Customer|ឈ្មោះ|Name):\s*/i, "").replace(/[^\w\s\u1780-\u17FF]/g, "").trim();
         }
-        if (clean.includes("លេខទូរស័ព្ទ:") || clean.includes("Phone:") || clean.includes("Tel:")) {
-            result.phone = clean.replace(/.*(លេខទូរស័ព្ទ|Phone|Tel):\s*/i, "").trim();
+        if (clean.includes("លេខទូរស័ព្ទ:") || clean.includes("ទូរស័ព្ទ:") || clean.includes("Phone:") || clean.includes("Tel:") || clean.includes("Call:")) {
+            let phoneStr = clean.replace(/.*(លេខទូរស័ព្ទ|ទូរស័ព្ទ|Phone|Tel|Call):\s*/i, "").trim();
+            // Remove helper text like '(ចុចដើម្បី Call)'
+            phoneStr = phoneStr.replace(/\(ចុចដើម្បី\s*Call\)/ig, "").trim();
+            result.phone = phoneStr;
         }
-        if (clean.includes("ទីតាំង:") || clean.includes("Location:")) {
-            result.location = clean.replace(/.*(ទីតាំង|Location):\s*/i, "").trim();
+        if (clean.includes("ទីតាំង:") || clean.includes("Location:") || clean.includes("ខេត្ត:") || clean.includes("ក្រុង:")) {
+            result.location = clean.replace(/.*(ទីតាំង|Location|ខេត្ត|ក្រុង):\s*/i, "").trim();
         }
-        if (clean.includes("អាសយដ្ឋាន:") || clean.includes("Address:") || clean.includes("ទីកន្លែង:")) {
-            result.address = clean.replace(/.*(អាសយដ្ឋាន|Address|ទីកន្លែង):\s*/i, "").trim();
+        if (clean.includes("អាសយដ្ឋាន:") || clean.includes("Address:") || clean.includes("ទីកន្លែង:") || clean.includes("ផ្ទះ:")) {
+            result.address = clean.replace(/.*(អាសយដ្ឋាន|Address|ទីកន្លែង|ផ្ទះ):\s*/i, "").trim();
         }
-        if (clean.includes("វិធីសាស្ត្រដឹកជញ្ជូន:") || clean.includes("Shipper:") || clean.includes("ដឹកតាម:")) {
-            result.shipper = clean.replace(/.*(វិធីសាស្ត្រដឹកជញ្ជូន|Shipper|ដឹកតាម):\s*/i, "").trim();
+        if (clean.includes("វិធីសាស្ត្រដឹកជញ្ជូន:") || clean.includes("Shipper:") || clean.includes("ដឹកតាម:") || clean.includes("ដឹក:")) {
+            result.shipper = clean.replace(/.*(វិធីសាស្ត្រដឹកជញ្ជូន|Shipper|ដឹកតាម|ដឹក):\s*/i, "").trim();
         }
-        if (clean.includes("ស្ថានភាពបង់ប្រាក់:") || clean.includes("Payment:")) {
-            const payStr = clean.replace(/.*(ស្ថានភាពបង់ប្រាក់|Payment):\s*/i, "").trim();
+        if (clean.includes("ស្ថានភាពបង់ប្រាក់:") || clean.includes("Payment:") || clean.includes("បង់ប្រាក់:")) {
+            const payStr = clean.replace(/.*(ស្ថានភាពបង់ប្រាក់|Payment|បង់ប្រាក់):\s*/i, "").trim();
             result.paymentMethod = payStr;
             if (payStr.toLowerCase().includes("paid") || payStr.toLowerCase().includes("aba") || payStr.includes("រួច")) {
                 result.paymentStatus = "PAID";
@@ -772,7 +816,7 @@ function parseTelegramText(rawText) {
                 result.id = idMatch[1].toUpperCase();
             }
         }
-        if (clean.includes("សរុបចុងក្រោយ:") || clean.includes("Total:")) {
+        if (clean.includes("សរុប:") || clean.includes("សរុបចុងក្រោយ:") || clean.includes("Total:") || clean.includes("តម្លៃសរុប:")) {
             const priceMatch = clean.match(/\$\s*(\d+(\.\d+)?)/) || clean.match(/(\d+(\.\d+)?)\s*\$/);
             if (priceMatch) {
                 result.totalAmount = parseFloat(priceMatch[1]);
@@ -784,15 +828,13 @@ function parseTelegramText(rawText) {
                 result.itemPrice = parseFloat(itemMatch[1]);
             }
         }
-        if (clean.includes("សេវាដឹក:") || clean.includes("Delivery fee:")) {
-            const feeMatch = clean.match(/\$\s*(\d+(\.\d+)?)/) || clean.match(/(\d+(\.\d+)?)\s*\$/);
-            if (feeMatch) {
-                result.deliveryFee = parseFloat(feeMatch[1]);
-            }
+        if (clean.includes("បុគ្គលិក:") || clean.includes("Staff:") || clean.includes("Seller:")) {
+            result.sellerStaff = clean.replace(/.*(បុគ្គលិក|Staff|Seller):\s*/i, "").trim();
         }
     });
 
-    const prodMatch = rawText.match(/ផលិតផល\s*-*\s*\n([\s\S]*?)(?=💰|សរុប|$)/i);
+    // Check products block
+    const prodMatch = rawText.match(/ផលិតផល\s*-*\s*\n([\s\S]*?)(?=💰|សរុប|💵|🚚|$)/i);
     if (prodMatch && prodMatch[1]) {
         result.products = prodMatch[1].trim();
     } else {
@@ -800,12 +842,155 @@ function parseTelegramText(rawText) {
         if (numLine) result.products = numLine;
     }
 
+    // If reply text contains price like "42$" or "$42"
+    if (replyText) {
+        const replyPrice = replyText.match(/\$\s*(\d+(\.\d+)?)/) || replyText.match(/(\d+(\.\d+)?)\s*\$/);
+        if (replyPrice) {
+            result.totalAmount = parseFloat(replyPrice[1]);
+        }
+    }
+
     if (!result.totalAmount && result.itemPrice) {
         result.totalAmount = result.itemPrice + (result.deliveryFee || 0);
     }
 
+    // Fallback product name from non-empty lines if empty
+    if (!result.products && lines.length > 2) {
+        const candidates = lines.filter(l => !l.includes(":") && !l.includes("#") && !l.includes("---") && l.length > 3);
+        if (candidates.length > 0) {
+            result.products = candidates[0];
+        }
+    }
+
+    result.qrData = `ACC-${result.id}-${(result.phone || '').replace(/[^0-9]/g, '')}-${result.totalAmount}USD`;
     return result;
 }
+
+// Track last processed update ID to prevent duplicate processing
+let lastTelegramUpdateId = 0;
+let isSyncingTelegram = false;
+
+// Sync Orders from Telegram API (getUpdates)
+async function syncOrdersFromTelegram(isManual = false) {
+    if (isSyncingTelegram) return;
+    isSyncingTelegram = true;
+
+    const syncBtn = document.getElementById("btn-sync-telegram");
+    const syncIcon = document.getElementById("sync-icon");
+    if (syncIcon) syncIcon.classList.add("spinning");
+
+    const token = state.settings.telegramBotToken || "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M";
+    let updates = [];
+
+    try {
+        // Try server endpoint first, fallback to direct telegram api
+        try {
+            const res = await fetch('/api/telegram-sync');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.ok && Array.isArray(data.result)) {
+                    updates = data.result;
+                }
+            }
+        } catch (e) {
+            // Direct fetch from Telegram
+            const directRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+            if (directRes.ok) {
+                const data = await directRes.json();
+                if (data.ok && Array.isArray(data.result)) {
+                    updates = data.result;
+                }
+            }
+        }
+
+        let newOrdersCount = 0;
+
+        if (updates && updates.length > 0) {
+            for (const update of updates) {
+                const msg = update.message || update.channel_post || update.edited_message;
+                if (!msg) continue;
+
+                const msgText = msg.text || msg.caption || "";
+                const replyText = msg.reply_to_message ? (msg.reply_to_message.text || "") : "";
+
+                // Determine if this message or its reply contains order details
+                let textToParse = msgText;
+                let replyPrice = "";
+
+                if (msg.reply_to_message && (msgText.includes("$") || /^\d+$/.test(msgText.trim()))) {
+                    // Message is a price reply to an order drop
+                    textToParse = replyText;
+                    replyPrice = msgText;
+                }
+
+                if (
+                    textToParse.includes("អតិថិជន") || 
+                    textToParse.includes("លេខទូរស័ព្ទ") || 
+                    textToParse.includes("Phone:") || 
+                    textToParse.includes("Page:") ||
+                    textToParse.includes("Order Drop") ||
+                    textToParse.includes("ផលិតផល")
+                ) {
+                    const parsed = parseTelegramText(textToParse, replyPrice);
+
+                    if (parsed && (parsed.customerName || parsed.phone || parsed.products)) {
+                        // Check for duplicates
+                        const isDuplicate = state.orders.some(existing => {
+                            if (existing.id === parsed.id) return true;
+                            const samePhone = existing.phone && parsed.phone && existing.phone.replace(/[^0-9]/g, '') === parsed.phone.replace(/[^0-9]/g, '');
+                            const sameName = existing.customerName && parsed.customerName && existing.customerName.toLowerCase() === parsed.customerName.toLowerCase();
+                            return samePhone && sameName;
+                        });
+
+                        if (!isDuplicate) {
+                            state.orders.unshift(parsed);
+                            newOrdersCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (newOrdersCount > 0) {
+            saveOrders();
+            renderStats();
+            renderTable();
+            if (state.orders.length > 0) {
+                selectOrder(state.orders[0].id);
+            }
+            showToast(`🎉 បានទាញយក Order ថ្មីចំនួន <strong>${newOrdersCount}</strong> ពី Telegram ដោយជោគជ័យ!`, "success");
+        } else if (isManual) {
+            showToast("ℹ️ មិនមាន Order ថ្មីនៅក្នុង Telegram ទេ (ទិន្នន័យទាន់សម័យហើយ)", "info");
+        }
+    } catch (err) {
+        console.error("Telegram Sync Error:", err);
+        if (isManual) {
+            showToast("⚠️ បញ្ហាក្នុងការទាញទិន្នន័យពី Telegram: " + err.message, "error");
+        }
+    } finally {
+        isSyncingTelegram = false;
+        if (syncIcon) syncIcon.classList.remove("spinning");
+    }
+}
+
+// Manual trigger for user clicking the Sync Telegram button
+function manualTelegramSync() {
+    syncOrdersFromTelegram(true);
+}
+
+// Background auto-polling (every 12 seconds)
+function startTelegramLivePolling() {
+    // Initial fetch after 2 seconds
+    setTimeout(() => {
+        syncOrdersFromTelegram(false);
+    }, 2000);
+
+    // Periodic polling every 12s
+    setInterval(() => {
+        syncOrdersFromTelegram(false);
+    }, 12000);
+}
+
 
 // CRUD OPERATIONS
 function addNewOrder(orderData) {

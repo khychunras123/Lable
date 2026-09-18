@@ -127,6 +127,19 @@ app.post('/api/settings', (req, res) => {
     return res.status(400).json({ error: 'Invalid settings object' });
 });
 
+// API: Sync orders live from Telegram Bot getUpdates
+app.get('/api/telegram-sync', async (req, res) => {
+    try {
+        const token = process.env.TELEGRAM_BOT_TOKEN || '8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M';
+        const telegramRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+        const data = await telegramRes.json();
+        return res.json(data);
+    } catch (err) {
+        console.error('Telegram Sync Error:', err);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });

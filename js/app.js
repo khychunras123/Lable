@@ -478,9 +478,7 @@ function generateTelegramReceiptHTML(order) {
 
             <div class="tg-summary-box">
                 <div class="tg-summary-title">💰 សរុប:</div>
-                <div>- តម្លៃទំនិញ: $${itemPrice}</div>
-                <div>- សេវាដឹក: $${deliveryFee}</div>
-                <div>- <strong>សរុបចុងក្រោយ: $${totalAmount}</strong></div>
+                <div>- <strong>តម្លៃសរុប: $${totalAmount}</strong></div>
                 <div>- 💵 <strong>ស្ថានភាពបង់ប្រាក់:</strong> ${escapeHtml(paymentMethodText)}</div>
             </div>
 
@@ -561,8 +559,6 @@ async function sendTelegramAlert(orderId, isSilent = false) {
 
     const pageName = order.pageName || state.settings.pageName || "INO Tech Studio";
     const dateFormatted = `${order.date || '18/09/2026'} ${order.time || '18:37'}`;
-    const itemPrice = parseFloat(order.itemPrice || order.totalAmount || 0).toFixed(2);
-    const deliveryFee = parseFloat(order.deliveryFee || 0).toFixed(2);
     const totalAmount = parseFloat(order.totalAmount || 0).toFixed(2);
     const isPaid = (order.paymentStatus || "").toUpperCase() === "PAID";
     const paymentMethodText = order.paymentMethod || (isPaid ? "Paid (ABA Bank (ACC Store) ($))" : "COD (ប្រមូលប្រាក់ពេលដឹកជញ្ជូន)");
@@ -582,9 +578,7 @@ async function sendTelegramAlert(orderId, isSilent = false) {
 ${order.products || '1. ទំនិញបញ្ជាទិញ'}
 
 💰 <b>សរុប:</b>
-- តម្លៃទំនិញ: $${itemPrice}
-- សេវាដឹក: $${deliveryFee}
-- <b>សរុបចុងក្រោយ: $${totalAmount}</b>
+- <b>តម្លៃសរុប: $${totalAmount}</b>
 - 💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${paymentMethodText}
 
 🚚 <b>វិធីសាស្ត្រដឹកជញ្ជូន:</b> ${order.shipper || 'វីរៈប៊ុនថាំ (VET)'}
@@ -1005,8 +999,6 @@ function openNewOrderModal() {
     document.getElementById("form-location").value = "ភ្នំពេញ";
     document.getElementById("form-address").value = "";
     document.getElementById("form-products").value = "";
-    document.getElementById("form-item-price").value = "0.00";
-    document.getElementById("form-delivery-fee").value = "0.00";
     document.getElementById("form-total-amount").value = "0.00";
     document.getElementById("form-payment-status").value = "PAID";
     document.getElementById("form-payment-method").value = "Paid (ABA Bank (ACC Store) ($))";
@@ -1030,9 +1022,7 @@ function openEditModal(id) {
     document.getElementById("form-location").value = order.location || "ភ្នំពេញ";
     document.getElementById("form-address").value = order.address || "";
     document.getElementById("form-products").value = order.products || "";
-    document.getElementById("form-item-price").value = order.itemPrice || order.totalAmount || "0.00";
-    document.getElementById("form-delivery-fee").value = order.deliveryFee || "0.00";
-    document.getElementById("form-total-amount").value = order.totalAmount || "0.00";
+    document.getElementById("form-total-amount").value = order.totalAmount || order.itemPrice || "0.00";
     document.getElementById("form-payment-status").value = order.paymentStatus || "PAID";
     document.getElementById("form-payment-method").value = order.paymentMethod || "";
     document.getElementById("form-shipper").value = order.shipper || "វីរៈប៊ុនថាំ (VET)";
@@ -1052,9 +1042,7 @@ function saveOrderFromModal() {
     const location = document.getElementById("form-location").value.trim();
     const address = document.getElementById("form-address").value.trim();
     const products = document.getElementById("form-products").value.trim();
-    const itemPrice = parseFloat(document.getElementById("form-item-price").value) || 0;
-    const deliveryFee = parseFloat(document.getElementById("form-delivery-fee").value) || 0;
-    const totalAmount = parseFloat(document.getElementById("form-total-amount").value) || (itemPrice + deliveryFee);
+    const totalAmount = parseFloat(document.getElementById("form-total-amount").value) || 0;
     const paymentStatus = document.getElementById("form-payment-status").value;
     const paymentMethod = document.getElementById("form-payment-method").value;
     const shipper = document.getElementById("form-shipper").value;
@@ -1069,9 +1057,9 @@ function saveOrderFromModal() {
         location,
         address,
         products,
-        itemPrice,
-        deliveryFee,
         totalAmount,
+        itemPrice: totalAmount,
+        deliveryFee: 0,
         paymentStatus,
         paymentMethod,
         shipper,

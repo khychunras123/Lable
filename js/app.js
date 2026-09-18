@@ -563,6 +563,12 @@ async function sendTelegramAlert(orderId, isSilent = false) {
     const isPaid = (order.paymentStatus || "").toUpperCase() === "PAID";
     const paymentMethodText = order.paymentMethod || (isPaid ? "Paid (ABA Bank (ACC Store) ($))" : "COD (ប្រមូលប្រាក់ពេលដឹកជញ្ជូន)");
 
+    // Extract digits for Call & Telegram direct contact links
+    const rawDigits = (order.phone || "").replace(/[^0-9]/g, "");
+    const intlPhone = rawDigits.startsWith("0") ? "855" + rawDigits.slice(1) : (rawDigits.startsWith("855") ? rawDigits : "855" + rawDigits);
+    const tgChatUrl = `https://t.me/+${intlPhone}`;
+    const telUrl = `tel:${rawDigits}`;
+
     const messageText = 
 `🔔 <b>មានការទម្លាក់ Order ថ្មី! (New Order Drop)</b> 📦
 
@@ -570,7 +576,7 @@ async function sendTelegramAlert(orderId, isSilent = false) {
 ✅ សូមបងពិនិត្យលេខទូរស័ព្ទ និងទីតាំងម្ដងទៀតបង 🙏
 📑 <b>Page:</b> ${order.pageName || pageName}
 👤 <b>អតិថិជន:</b> ${order.customerName}
-📞 <b>លេខទូរស័ព្ទ:</b> ${order.phone}
+📞 <b>លេខទូរស័ព្ទ:</b> <a href="${telUrl}"><b>${order.phone}</b></a> <i>(ចុចដើម្បី Call)</i>
 📍 <b>ទីតាំង:</b> ${order.location || ''}
 🏠 <b>អាសយដ្ឋាន:</b> ${order.address || ''}
 
@@ -586,17 +592,29 @@ ${order.products || '1. ទំនិញបញ្ជាទិញ'}
 
 អរគុណបង 🙏🥰 | ID: <b>#${order.id}</b>`;
 
+    const requestPayload = {
+        chat_id: chatId,
+        text: messageText,
+        parse_mode: "HTML",
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    {
+                        text: "💬 ចុចឆាត Telegram ទៅកាន់អតិថិជន",
+                        url: tgChatUrl
+                    }
+                ]
+            ]
+        }
+    };
+
     try {
         const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: messageText,
-                parse_mode: "HTML"
-            })
+            body: JSON.stringify(requestPayload)
         });
 
         const data = await res.json();

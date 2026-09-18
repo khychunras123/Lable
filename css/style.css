@@ -1055,6 +1055,7 @@ body {
   transform: translateY(15px);
   transition: transform 0.2s ease;
   overflow: hidden;
+  position: relative;
 }
 
 .modal-overlay.active .modal-box {
@@ -1067,6 +1068,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 20;
 }
 
 .modal-header h3 {
@@ -1083,15 +1088,20 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  flex: 1;
 }
 
 .modal-footer {
   padding: 0.85rem 1.25rem;
   border-top: 1px solid var(--border);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 0.6rem;
   background: var(--bg-card);
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
 }
 
 /* Form Styles */

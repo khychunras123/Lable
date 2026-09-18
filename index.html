@@ -2,8 +2,13 @@
 <html lang="km" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ACC Delivery">
     <title>ACC Store - ប្រព័ន្ធគ្រប់គ្រងការបញ្ជាទិញ និងបោះពុម្ពស្លាកដឹកជញ្ជូន 80x60mm</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -416,6 +421,33 @@ ID: #F38BA5"></textarea>
             </form>
         </div>
     </div>
+
+    <!-- =========================================================================
+         MOBILE FLOATING ACTION BUTTON & BOTTOM NAVIGATION
+         ========================================================================= -->
+    <button class="mobile-fab no-print" onclick="openNewOrderModal()" title="Submit Order ថ្មី">
+        <span>➕</span>
+        <span style="font-size: 0.85rem; font-weight: 800;">SUBMIT</span>
+    </button>
+
+    <nav class="mobile-bottom-nav no-print">
+        <button class="mobile-nav-item active" onclick="switchMobileView('orders')">
+            <span class="icon">📋</span>
+            <span>បញ្ជី Order</span>
+        </button>
+        <button class="mobile-nav-item" onclick="switchMobileView('preview')">
+            <span class="icon">🏷️</span>
+            <span>មើល Label</span>
+        </button>
+        <button class="mobile-nav-item" onclick="openTelegramParserModal()">
+            <span class="icon">📥</span>
+            <span>នាំចូល</span>
+        </button>
+        <button class="mobile-nav-item" onclick="openSettingsModal()">
+            <span class="icon">⚙️</span>
+            <span>កំណត់</span>
+        </button>
+    </nav>
 
     <!-- Hidden Print Target (Activated only during window.print()) -->
     <div id="print-render-container"></div>

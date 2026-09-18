@@ -1259,3 +1259,20 @@ function escapeHtml(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+// Mobile View Switcher
+function switchMobileView(view) {
+    const tablePanel = document.querySelector(".table-panel");
+    const previewPanel = document.querySelector(".preview-panel");
+    const navItems = document.querySelectorAll(".mobile-nav-item");
+
+    navItems.forEach(item => item.classList.remove("active"));
+
+    if (view === "orders") {
+        if (tablePanel) tablePanel.scrollIntoView({ behavior: "smooth" });
+        if (navItems[0]) navItems[0].classList.add("active");
+    } else if (view === "preview") {
+        if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
+        if (navItems[1]) navItems[1].classList.add("active");
+    }
+}

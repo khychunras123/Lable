@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="km" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACC Store - ប្រព័ន្ធគ្រប់គ្រងការបញ្ជាទិញ និងបោះពុម្ពស្លាកដឹកជញ្ជូន 80x60mm</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand-section">
+                <div class="logo-badge">📦</div>
+                <div class="brand-text">
+                    <h1><span class="highlight">ACC Delivery</span> & Label Pro</h1>
+                    <p>ប្រព័ន្ធគ្រប់គ្រងការបញ្ជាទិញ និងបោះពុម្ពស្លាក 80x60mm Thermal Sticker</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openNewOrderModal()">
+                    <span>➕</span> បន្ថែម Order ថ្មី
+                </button>
+                <button class="btn btn-secondary" onclick="openTelegramParserModal()" title="ទាញយកទិន្នន័យពី Telegram Bot Text">
+                    <span>📋</span> នាំចូលពី Telegram
+                </button>
+                <button class="btn btn-success" onclick="printBatchSelected()" title="បោះពុម្ពស្លាកទាំងអស់ដែលបានជ្រើសរើស">
+                    <span>🖨️</span> បោះពុម្ព (Batch Print)
+                </button>
+                <button class="btn btn-secondary" onclick="exportOrdersCSV()" title="ទាញយកជា CSV / Excel">
+                    <span>💾</span> Export CSV
+                </button>
+                <button class="btn-icon" onclick="openSettingsModal()" title="ការកំណត់ហាង (Store Settings)">
+                    ⚙️
+                </button>
+                <button class="btn-icon" id="theme-toggle-btn" title="ប្តូរ Dark / Light Theme">
+                    🌙
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Summary Strip -->
+    <section class="stats-strip">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-icon blue">📦</div>
+                <div class="stat-info">
+                    <span class="stat-label">ការបញ្ជាទិញសរុប (Total)</span>
+                    <span class="stat-val" id="stat-total-orders">0</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon green">💵</div>
+                <div class="stat-info">
+                    <span class="stat-label">ទឹកប្រាក់សរុប (Revenue)</span>
+                    <span class="stat-val" id="stat-total-revenue">$0.00</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon green">✅</div>
+                <div class="stat-info">
+                    <span class="stat-label">បានបង់ប្រាក់ (PAID)</span>
+                    <span class="stat-val" id="stat-paid-count">0</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon orange">🚚</div>
+                <div class="stat-info">
+                    <span class="stat-label">ប្រមូលប្រាក់ (COD)</span>
+                    <span class="stat-val" id="stat-cod-count">0</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Workspace Layout -->
+    <main class="main-wrapper">
+        <!-- Left Panel: Orders Table -->
+        <section class="table-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>📋 តារាងគ្រប់គ្រងការបញ្ជាទិញ</span>
+                    <span class="badge-count" id="table-count-badge">0 Orders</span>
+                </div>
+
+                <div class="table-controls">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="search-input" placeholder="ស្វែងរកឈ្មោះ, លេខទូរស័ព្ទ, ID, ទីតាំង...">
+                    </div>
+
+                    <select class="filter-select" id="status-filter-select">
+                        <option value="ALL">ស្ថានភាពបង់ប្រាក់: ទាំងអស់</option>
+                        <option value="PAID">✅ PAID (បានបង់ប្រាក់)</option>
+                        <option value="COD">⏳ COD (ប្រមូលប្រាក់)</option>
+                    </select>
+
+                    <select class="filter-select" id="shipper-filter-select">
+                        <option value="ALL">ដឹកជញ្ជូន: ទាំងអស់</option>
+                        <option value="វីរៈប៊ុនថាំ">វីរៈប៊ុនថាំ (VET)</option>
+                        <option value="J&T">J&T Express</option>
+                        <option value="Flash">Flash Express</option>
+                        <option value="កាពីតូល">កាពីតូល (Capitol)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Scroll Container -->
+            <div class="table-scroll">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="select-all-checkbox" title="ជ្រើសរើសទាំងអស់">
+                            </th>
+                            <th>ID</th>
+                            <th>អតិថិជន / ទូរស័ព្ទ</th>
+                            <th>ទីតាំង & អាសយដ្ឋាន</th>
+                            <th>ទំនិញ (Products)</th>
+                            <th>តម្លៃសរុប</th>
+                            <th>ស្ថានភាព</th>
+                            <th>ដឹកតាម</th>
+                            <th style="text-align: center;">សកម្មភាព</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-tbody">
+                        <!-- Dynamic Order Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="table-empty-state" style="display: none; text-align: center; padding: 3rem; color: var(--text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📭</div>
+                <p>មិនមានទិន្នន័យការបញ្ជាទិញដែលត្រូវគ្នានឹងការស្វែងរកឡើយ</p>
+            </div>
+
+            <div class="table-footer">
+                <div id="selected-count-label">0 ត្រូវបានជ្រើសរើស</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="printBatchSelected()">
+                        🖨️ បោះពុម្ពដែលបានជ្រើសរើស
+                    </button>
+                    <button class="btn btn-danger" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="deleteBatchSelected()">
+                        🗑️ លុបដែលបានជ្រើសរើស
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Dual-View Live Preview Card -->
+        <section class="preview-panel">
+            <div class="preview-tabs">
+                <button class="tab-btn active" data-tab="label">
+                    <span>🏷️</span> ទម្រង់ Label 80x60mm
+                </button>
+                <button class="tab-btn" data-tab="telegram">
+                    <span>💬</span> ទម្រង់ Telegram Bot
+                </button>
+                <button class="tab-btn" data-tab="a4">
+                    <span>📄</span> សន្លឹក A4 Multi
+                </button>
+            </div>
+
+            <div class="preview-toolbar">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">
+                    👁️ ការបង្ហាញផ្ទាល់ (Live Preview)
+                </span>
+                <div style="display: flex; gap: 0.4rem;">
+                    <button class="btn btn-primary" style="padding: 0.4rem 0.75rem; font-size: 0.82rem;" onclick="printSingleOrder()">
+                        🖨️ បោះពុម្ព Label នេះ
+                    </button>
+                </div>
+            </div>
+
+            <div class="preview-content" id="preview-render-area">
+                <!-- Active Preview Injected via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- =========================================================================
+         MODAL 1: ADD / EDIT ORDER
+         ========================================================================= -->
+    <div class="modal-overlay" id="order-edit-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-order-title">➕ បន្ថែម Order ថ្មី</h3>
+                <button class="btn-icon" onclick="closeModal('order-edit-modal')">✕</button>
+            </div>
+            <form id="order-form">
+                <input type="hidden" id="form-edit-mode" value="new">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">លេខសម្គាល់ Order (ID)</label>
+                            <input type="text" class="form-input" id="form-order-id" required style="font-family: var(--font-mono); font-weight: 700;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ឈ្មោះអតិថិជន (Customer Name) *</label>
+                            <input type="text" class="form-input" id="form-cust-name" required placeholder="ឧ. Seng Leang">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">លេខទូរស័ព្ទ (Phone Number) *</label>
+                            <input type="text" class="form-input" id="form-phone" required placeholder="ឧ. 085467475(Cellcard)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ទីតាំង / ខេត្ត-ក្រុង (Location) *</label>
+                            <input type="text" class="form-input" id="form-location" required placeholder="ឧ. សៀមរាប ឬ ភ្នំពេញ">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">អាសយដ្ឋានលម្អិត (Address) *</label>
+                            <textarea class="form-textarea" id="form-address" required placeholder="ឧ. សៀមរាប ចុងកៅស៊ូ"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">ទំនិញបញ្ជាទិញ (Products & Quantity)</label>
+                            <input type="text" class="form-input" id="form-products" placeholder="ឧ. ATTACK SHARK L50 PRO | Black x1 = $52.00">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">តម្លៃទំនិញ ($ Item Price)</label>
+                            <input type="number" step="0.01" class="form-input" id="form-item-price" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">សេវាដឹកជញ្ជូន ($ Delivery Fee)</label>
+                            <input type="number" step="0.01" class="form-input" id="form-delivery-fee" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">សរុបចុងក្រោយ ($ Total Amount) *</label>
+                            <input type="number" step="0.01" class="form-input" id="form-total-amount" required value="0.00" style="font-weight: 700; color: #60a5fa;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ស្ថានភាពបង់ប្រាក់</label>
+                            <select class="form-select" id="form-payment-status">
+                                <option value="PAID">✅ PAID (បានបង់ប្រាក់)</option>
+                                <option value="COD">⏳ COD (ប្រមូលប្រាក់)</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">ព័ត៌មានលម្អិតនៃការបង់ប្រាក់ (Payment Method Info)</label>
+                            <input type="text" class="form-input" id="form-payment-method" placeholder="ឧ. Paid (ABA Bank (ACC Store) ($))">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">ក្រុមហ៊ុនដឹកជញ្ជូន (Shipper)</label>
+                            <input type="text" class="form-input" id="form-shipper" value="វីរៈប៊ុនថាំ (VET)" placeholder="ឧ. វីរៈប៊ុនថាំ (VET), J&T Express, Flash Express...">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('order-edit-modal')">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">💾 រក្សាទុក Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 2: SMART TELEGRAM MESSAGE PARSER
+         ========================================================================= -->
+    <div class="modal-overlay" id="telegram-parser-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>📋 នាំចូលទិន្នន័យពី Telegram Text</h3>
+                <button class="btn-icon" onclick="closeModal('telegram-parser-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="parser-hint">
+                    💡 <strong>របៀបប្រើ:</strong> ចម្លង (Copy) អត្ថបទសារការបញ្ជាទិញពី Telegram Bot ឬ Chat ហើយបិទភ្ជាប់ (Paste) ចូលប្រអប់ខាងក្រោម។ ប្រព័ន្ធនឹងទាញយកឈ្មោះ លេខទូរស័ព្ទ ទីតាំង ទំនិញ និងតម្លៃចូលក្នុង Table ដោយស្វ័យប្រវត្តិ!
+                </div>
+                <div class="form-group">
+                    <label class="form-label">បិទភ្ជាប់អត្ថបទ Telegram នៅទីនេះ (Paste text below):</label>
+                    <textarea class="form-textarea" id="telegram-raw-input" style="min-height: 220px; font-family: var(--font-mono); font-size: 0.85rem;" placeholder="ឧទាហរណ៍៖
+Page: INO Tech Studio
+អតិថិជន: Seng Leang
+លេខទូរស័ព្ទ: 085467475(Cellcard)
+ទីតាំង: សៀមរាប
+អាសយដ្ឋាន: សៀមរាប ចុងកៅស៊ូ
+---------- ផលិតផល ----------
+1. ATTACK SHARK L50 PRO | Black x1 = $52.00
+💰 សរុប:
+- តម្លៃទំនិញ: $52
+- សេវាដឹក: $0
+- សរុបចុងក្រោយ: $52
+- ស្ថានភាពបង់ប្រាក់: Paid (ABA Bank (ACC Store) ($))
+🚚 វិធីសាស្ត្រដឹកជញ្ជូន: វីរៈប៊ុនថាំ (VET)
+ID: #F38BA5"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('telegram-parser-modal')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" id="btn-apply-parser">
+                    ✨ បំប្លែង និងបន្ថែមចូល Table
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 3: STORE & LABEL SETTINGS
+         ========================================================================= -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>⚙️ ការកំណត់ស្លាក & ហាង (Store Settings)</h3>
+                <button class="btn-icon" onclick="closeModal('settings-modal')">✕</button>
+            </div>
+            <form id="settings-form">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">ឈ្មោះហាងនៅលើក្បាល Label (Header Store Name)</label>
+                            <input type="text" class="form-input" id="setting-store-name" value="ACC Store" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ឈ្មោះ Page / Brand (Bottom Left)</label>
+                            <input type="text" class="form-input" id="setting-page-name" value="INO Tech Studio" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ឈ្មោះអ្នកលក់ / បុគ្គលិក (Staff Name)</label>
+                            <input type="text" class="form-input" id="setting-seller-staff" value="Chunras" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">អត្ថបទខាងក្រោមបាត Label (Footer System Tag)</label>
+                            <input type="text" class="form-input" id="setting-system-footer" value="PRO DELIVERY SYSTEM" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('settings-modal')">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">💾 រក្សាទុកការកំណត់</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Print Target (Activated only during window.print()) -->
+    <div id="print-render-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/qrcode.min.js"></script>
+    <script src="js/sample-data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

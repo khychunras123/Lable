@@ -87,6 +87,7 @@ const DEFAULT_SETTINGS = {
     theme: "dark",
     telegramBotToken: "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M",
     telegramBotUsername: "chunrasbot",
-    telegramChatId: "",
+    telegramChatId: "-5139897271",
+    telegramGroupName: "table",
     autoTelegramAlert: true
 };

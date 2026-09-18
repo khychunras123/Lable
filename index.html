@@ -284,6 +284,18 @@
                                 <option value="ដឹកផ្ទាល់ (Direct Delivery / Grab)">
                             </datalist>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">ឈ្មោះ Page / Brand</label>
+                            <input type="text" class="form-input" id="form-page-name" placeholder="ឧ. INO Tech Studio">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">អ្នកលក់ / Staff</label>
+                            <input type="text" class="form-input" id="form-seller-staff" placeholder="ឧ. Chunras">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">កំណត់ចំណាំបន្ថែម (Notes)</label>
+                            <input type="text" class="form-input" id="form-notes" placeholder="ឧ. ប្រញាប់ដឹកមុនម៉ោង 5 ល្ងាច, Call មុនដឹក...">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -291,6 +303,25 @@
                     <button type="submit" class="btn btn-primary">💾 រក្សាទុក Order</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL: ORDER DETAILS INSPECTOR (បង្ហាញព័ត៌មានលម្អិតទាំងអស់)
+         ========================================================================= -->
+    <div class="modal-overlay" id="order-details-modal">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>📋 ព័ត៌មានលម្អិតនៃការបញ្ជាទិញ (Order Details)</h3>
+                <button class="btn-icon" onclick="closeModal('order-details-modal')">✕</button>
+            </div>
+            <div class="modal-body" id="details-modal-body">
+                <!-- Injected via JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('order-details-modal')">បិទ</button>
+                <button type="button" class="btn btn-primary" onclick="printSingleOrder(state.activeOrderId)">🖨️ បោះពុម្ព Label នេះ</button>
+            </div>
         </div>
     </div>
 

@@ -1,6 +1,6 @@
 /**
  * Delivery Label & Order Management Application Logic
- * Integrated with Telegram Bot Notifications
+ * Full Persistent Storage (Server Database + LocalStorage) & Complete UI Display
  */
 
 // Application State
@@ -20,22 +20,17 @@ const state = {
 document.addEventListener("DOMContentLoaded", () => {
     loadState();
     setupEventListeners();
-    renderStats();
-    renderTable();
-    if (state.orders.length > 0) {
-        selectOrder(state.orders[0].id);
-    }
 });
 
-// Load state from localStorage or default sample
-function loadState() {
+// Load state from server or localStorage or default sample
+async function loadState() {
+    // 1. Load instantly from LocalStorage for instant rendering
     try {
         const savedOrders = localStorage.getItem("acc_delivery_orders");
         if (savedOrders) {
             state.orders = JSON.parse(savedOrders);
         } else {
             state.orders = [...INITIAL_ORDERS];
-            saveOrders();
         }
 
         const savedSettings = localStorage.getItem("acc_delivery_settings");
@@ -43,25 +38,77 @@ function loadState() {
             state.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) };
         }
     } catch (e) {
-        console.error("Failed to load state", e);
+        console.error("Local storage load error:", e);
         state.orders = [...INITIAL_ORDERS];
+    }
+
+    renderStats();
+    renderTable();
+    if (state.orders.length > 0) {
+        selectOrder(state.orders[0].id);
+    }
+
+    // 2. Sync with Backend Server (if running via server.js / Render)
+    try {
+        const resOrders = await fetch('/api/orders');
+        if (resOrders.ok) {
+            const serverOrders = await resOrders.json();
+            if (Array.isArray(serverOrders) && serverOrders.length > 0) {
+                state.orders = serverOrders;
+                localStorage.setItem("acc_delivery_orders", JSON.stringify(serverOrders));
+                renderStats();
+                renderTable();
+                if (state.orders.length > 0) {
+                    selectOrder(state.orders[0].id);
+                }
+            }
+        }
+
+        const resSettings = await fetch('/api/settings');
+        if (resSettings.ok) {
+            const serverSettings = await resSettings.json();
+            if (serverSettings && typeof serverSettings === 'object') {
+                state.settings = { ...DEFAULT_SETTINGS, ...serverSettings };
+                localStorage.setItem("acc_delivery_settings", JSON.stringify(state.settings));
+                renderCurrentPreview();
+            }
+        }
+    } catch (err) {
+        // If static without backend, localStorage handles it smoothly
+        console.log("Offline or static host mode (localStorage active)");
     }
 }
 
+// Save orders to both LocalStorage and Backend Server
 function saveOrders() {
     try {
         localStorage.setItem("acc_delivery_orders", JSON.stringify(state.orders));
     } catch (e) {
-        console.error("Failed to save orders", e);
+        console.error("Failed to save orders locally", e);
     }
+
+    // Sync to backend database
+    fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state.orders)
+    }).catch(err => console.log("Backend sync note (offline/static):", err.message));
 }
 
+// Save settings to both LocalStorage and Backend Server
 function saveSettings() {
     try {
         localStorage.setItem("acc_delivery_settings", JSON.stringify(state.settings));
     } catch (e) {
-        console.error("Failed to save settings", e);
+        console.error("Failed to save settings locally", e);
     }
+
+    // Sync to backend database
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state.settings)
+    }).catch(err => console.log("Backend sync note (offline/static):", err.message));
 }
 
 // Generate unique ID like F38BA5
@@ -151,12 +198,14 @@ function renderTable() {
                 <td onclick="event.stopPropagation()">
                     <input type="checkbox" class="row-checkbox" data-id="${order.id}" ${isSelected ? 'checked' : ''}>
                 </td>
-                <td class="order-id-cell">#${escapeHtml(order.id)}</td>
+                <td class="order-id-cell" title="កាលបរិច្ឆេទ: ${escapeHtml(order.date || '')} ${escapeHtml(order.time || '')}">
+                    #${escapeHtml(order.id)}
+                </td>
                 <td class="customer-cell">
                     <span class="name">${escapeHtml(order.customerName)}</span>
                     <span class="phone">${escapeHtml(order.phone)}</span>
                 </td>
-                <td class="address-cell">
+                <td class="address-cell" title="${escapeHtml(order.address || '')}">
                     <span class="loc-tag">${escapeHtml(order.location || '')}</span>
                     <span>${escapeHtml(order.address || '')}</span>
                 </td>
@@ -175,6 +224,9 @@ function renderTable() {
                     <span class="shipper-chip">${escapeHtml(order.shipper || '-')}</span>
                 </td>
                 <td class="row-actions" onclick="event.stopPropagation()">
+                    <button class="row-btn" title="មើលព័ត៌មានលម្អិតទាំងអស់ (View All Details)" onclick="openOrderDetailsModal('${order.id}')">
+                        👁️
+                    </button>
                     <button class="row-btn" title="ផ្ញើទៅ Telegram (Send Alert)" onclick="sendTelegramAlert('${order.id}')">
                         📢
                     </button>
@@ -499,9 +551,7 @@ function generateA4SheetPreviewHTML() {
     return html;
 }
 
-// =========================================================================
 // TELEGRAM BOT ALERT ENGINE
-// =========================================================================
 async function sendTelegramAlert(orderId, isSilent = false) {
     const order = state.orders.find(o => o.id === orderId) || getActiveOrder();
     if (!order) return;
@@ -952,7 +1002,7 @@ function openNewOrderModal() {
     document.getElementById("form-order-id").value = generateOrderId();
     document.getElementById("form-cust-name").value = "";
     document.getElementById("form-phone").value = "";
-    document.getElementById("form-location").value = "";
+    document.getElementById("form-location").value = "ភ្នំពេញ";
     document.getElementById("form-address").value = "";
     document.getElementById("form-products").value = "";
     document.getElementById("form-item-price").value = "0.00";
@@ -961,6 +1011,9 @@ function openNewOrderModal() {
     document.getElementById("form-payment-status").value = "PAID";
     document.getElementById("form-payment-method").value = "Paid (ABA Bank (ACC Store) ($))";
     document.getElementById("form-shipper").value = "វីរៈប៊ុនថាំ (VET)";
+    document.getElementById("form-page-name").value = state.settings.pageName || "INO Tech Studio";
+    document.getElementById("form-seller-staff").value = state.settings.sellerStaff || "Chunras";
+    document.getElementById("form-notes").value = "";
     document.getElementById("form-edit-mode").value = "new";
 
     openModal("order-edit-modal");
@@ -974,7 +1027,7 @@ function openEditModal(id) {
     document.getElementById("form-order-id").value = order.id;
     document.getElementById("form-cust-name").value = order.customerName || "";
     document.getElementById("form-phone").value = order.phone || "";
-    document.getElementById("form-location").value = order.location || "";
+    document.getElementById("form-location").value = order.location || "ភ្នំពេញ";
     document.getElementById("form-address").value = order.address || "";
     document.getElementById("form-products").value = order.products || "";
     document.getElementById("form-item-price").value = order.itemPrice || order.totalAmount || "0.00";
@@ -983,6 +1036,9 @@ function openEditModal(id) {
     document.getElementById("form-payment-status").value = order.paymentStatus || "PAID";
     document.getElementById("form-payment-method").value = order.paymentMethod || "";
     document.getElementById("form-shipper").value = order.shipper || "វីរៈប៊ុនថាំ (VET)";
+    document.getElementById("form-page-name").value = order.pageName || state.settings.pageName || "INO Tech Studio";
+    document.getElementById("form-seller-staff").value = order.sellerStaff || state.settings.sellerStaff || "Chunras";
+    document.getElementById("form-notes").value = order.notes || "";
     document.getElementById("form-edit-mode").value = "edit";
 
     openModal("order-edit-modal");
@@ -1002,6 +1058,9 @@ function saveOrderFromModal() {
     const paymentStatus = document.getElementById("form-payment-status").value;
     const paymentMethod = document.getElementById("form-payment-method").value;
     const shipper = document.getElementById("form-shipper").value;
+    const pageName = document.getElementById("form-page-name").value.trim() || state.settings.pageName;
+    const sellerStaff = document.getElementById("form-seller-staff").value.trim() || state.settings.sellerStaff;
+    const notes = document.getElementById("form-notes").value.trim();
 
     const orderData = {
         id,
@@ -1016,10 +1075,11 @@ function saveOrderFromModal() {
         paymentStatus,
         paymentMethod,
         shipper,
+        pageName,
+        sellerStaff,
+        notes,
         date: new Date().toLocaleDateString('en-GB'),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        pageName: state.settings.pageName,
-        sellerStaff: state.settings.sellerStaff,
         qrData: `ACC-${id}-${phone}-${totalAmount}USD`
     };
 
@@ -1032,13 +1092,113 @@ function saveOrderFromModal() {
     closeModal("order-edit-modal");
 }
 
+// Order Details Full Inspector Modal
+function openOrderDetailsModal(id) {
+    const order = state.orders.find(o => o.id === id) || getActiveOrder();
+    if (!order) return;
+
+    const modalBody = document.getElementById("details-modal-body");
+    if (!modalBody) return;
+
+    const isPaid = (order.paymentStatus || "").toUpperCase() === "PAID";
+
+    modalBody.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.1); padding: 0.75rem 1rem; border-radius: 8px;">
+                <div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">លេខកូដ Order</span>
+                    <h2 style="font-family: var(--font-mono); color: #60a5fa; font-size: 1.3rem;">#${escapeHtml(order.id)}</h2>
+                </div>
+                <div>
+                    <span class="status-chip ${(order.paymentStatus || 'PAID').toLowerCase()}" style="font-size: 0.9rem; padding: 0.35rem 0.8rem;">
+                        ${isPaid ? '✓ ' : ''}${escapeHtml(order.paymentStatus || 'PAID')}
+                    </span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; font-size: 0.9rem;">
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">👤 ឈ្មោះអតិថិជន</div>
+                    <div style="font-weight: 700; font-size: 1rem;">${escapeHtml(order.customerName)}</div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">📞 លេខទូរស័ព្ទ</div>
+                    <div style="font-weight: 700; font-size: 1rem; color: #60a5fa;">
+                        <a href="tel:${escapeHtml(order.phone)}" style="color: inherit; text-decoration: none;">${escapeHtml(order.phone)}</a>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">📍 ទីតាំង / ខេត្ត-ក្រុង</div>
+                    <div style="font-weight: 700; color: #fbbf24;">${escapeHtml(order.location || '-')}</div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">🚚 ក្រុមហ៊ុនដឹកជញ្ជូន</div>
+                    <div style="font-weight: 700;">${escapeHtml(order.shipper || '-')}</div>
+                </div>
+
+                <div style="grid-column: 1 / -1; background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">🏠 អាសយដ្ឋានលម្អិត</div>
+                    <div style="font-weight: 600; margin-top: 2px;">${escapeHtml(order.address || '-')}</div>
+                </div>
+
+                <div style="grid-column: 1 / -1; background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">📦 មុខទំនិញបញ្ជាទិញ</div>
+                    <div style="font-weight: 600; margin-top: 2px; color: #e2e8f0;">${escapeHtml(order.products || '-')}</div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">💵 តម្លៃទំនិញ / សេវាដឹក</div>
+                    <div style="font-weight: 600;">$${parseFloat(order.itemPrice || order.totalAmount || 0).toFixed(2)} + $${parseFloat(order.deliveryFee || 0).toFixed(2)}</div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">💰 ទឹកប្រាក់សរុបចុងក្រោយ</div>
+                    <div style="font-weight: 900; font-size: 1.15rem; color: #34d399;">$${parseFloat(order.totalAmount || 0).toFixed(2)}</div>
+                </div>
+
+                <div style="grid-column: 1 / -1; background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">💳 វិធីសាស្ត្របង់ប្រាក់</div>
+                    <div style="font-weight: 600;">${escapeHtml(order.paymentMethod || '-')}</div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">📑 Page / Shop</div>
+                    <div style="font-weight: 600;">${escapeHtml(order.pageName || state.settings.pageName)}</div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">👤 បុគ្គលិកទទួល Order</div>
+                    <div style="font-weight: 600;">${escapeHtml(order.sellerStaff || state.settings.sellerStaff)}</div>
+                </div>
+
+                <div style="grid-column: 1 / -1; background: var(--bg-card); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">📅 កាលបរិច្ឆេទ & ម៉ោង</div>
+                    <div style="font-weight: 600;">${escapeHtml(order.date || '')} ${escapeHtml(order.time || '')}</div>
+                </div>
+
+                ${order.notes ? `
+                <div style="grid-column: 1 / -1; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 0.75rem; border-radius: 4px;">
+                    <div style="font-size: 0.75rem; color: #fbbf24; font-weight: 700;">📝 កំណត់ចំណាំ (Notes)</div>
+                    <div>${escapeHtml(order.notes)}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+    openModal("order-details-modal");
+}
+
 function openSettingsModal() {
     document.getElementById("setting-store-name").value = state.settings.storeName || "ACC Store";
     document.getElementById("setting-page-name").value = state.settings.pageName || "INO Tech Studio";
     document.getElementById("setting-seller-staff").value = state.settings.sellerStaff || "Chunras";
     document.getElementById("setting-system-footer").value = state.settings.systemFooter || "PRO DELIVERY SYSTEM";
     document.getElementById("setting-telegram-token").value = state.settings.telegramBotToken || "8694331932:AAEif5VMmmF2ohUprtQxEeQHMPT1kvBGJ6M";
-    document.getElementById("setting-telegram-chatid").value = state.settings.telegramChatId || "";
+    document.getElementById("setting-telegram-chatid").value = state.settings.telegramChatId || "-5139897271";
     document.getElementById("setting-telegram-auto").checked = state.settings.autoTelegramAlert !== false;
     openModal("settings-modal");
 }
@@ -1053,7 +1213,7 @@ function exportOrdersCSV() {
         return;
     }
 
-    const headers = ["ID", "Customer Name", "Phone", "Location", "Address", "Products", "Total Amount", "Status", "Shipper", "Date"];
+    const headers = ["ID", "Customer Name", "Phone", "Location", "Address", "Products", "Item Price", "Delivery Fee", "Total Amount", "Status", "Payment Method", "Shipper", "Page", "Staff", "Date", "Time"];
     const rows = state.orders.map(o => [
         `#${o.id}`,
         `"${(o.customerName || '').replace(/"/g, '""')}"`,
@@ -1061,10 +1221,16 @@ function exportOrdersCSV() {
         `"${(o.location || '').replace(/"/g, '""')}"`,
         `"${(o.address || '').replace(/"/g, '""')}"`,
         `"${(o.products || '').replace(/"/g, '""')}"`,
+        o.itemPrice || o.totalAmount,
+        o.deliveryFee || 0,
         o.totalAmount,
         o.paymentStatus,
+        `"${(o.paymentMethod || '').replace(/"/g, '""')}"`,
         `"${(o.shipper || '').replace(/"/g, '""')}"`,
-        o.date
+        `"${(o.pageName || '').replace(/"/g, '""')}"`,
+        `"${(o.sellerStaff || '').replace(/"/g, '""')}"`,
+        o.date,
+        o.time
     ]);
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
